@@ -28,7 +28,7 @@ class Mailchimp
 
     public function test()
     {
-        return "works dude";
+        return "works dude, really!";
     }
 
     // /**
