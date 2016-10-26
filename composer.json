@@ -1,0 +1,44 @@
+{
+    "name": "mbarwick83/mailchimp",
+    "description": "Stupid Simple MailChimp API package (with oAuth functions) for Laravel 5.*",
+    "keywords": [
+        "mailchimp",
+        "api",
+        "laravel",
+        "oauth"
+    ],
+    "homepage": "https://github.com/mbarwick83/mailchimp",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mike Barwick",
+            "email": "mike@barwickandco.com"
+        }
+    ],
+    "require": {
+        "php" : ">=5.5.0",        
+        "symfony/psr-http-message-bridge": "0.2",
+        "guzzlehttp/guzzle": "^6.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit" : "4.*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Mbarwick83\\Mailchimp\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Mbarwick83\\Mailchimp\\Test\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
+    }
+}
