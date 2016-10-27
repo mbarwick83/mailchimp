@@ -54,7 +54,7 @@ class Mailchimp
     */
     public function getAccessToken($code)
     {
-	   $response = $this->post('oauth2/token', ['code' => $code], true);
+	   $response = $this->post('oauth2/token', ['code' => $code], false, true);
        return $response['access_token'];
     }
 
@@ -102,12 +102,12 @@ class Mailchimp
     * Make POST calls to the API
     * 
     * @param    string  $path
-    * @param    array   $parameters       [Optional query parameters]          
-    * @param    boolean $authorization    [Use access token query params]
-    * @param    string  $data_center      [user's data center code]
+    * @param    array   $parameters       [Optional query parameters]  
+    * @param    string  $data_center      [user's data center code]        
+    * @param    boolean $authorization    [Use access token query params] 
     * @return   Response
     */    
-    public function post($path, array $parameters, $authorization = false, $data_center = false)
+    public function post($path, array $parameters, $data_center = false, $authorization = false)
     {
     	$query = [];
 

@@ -1,10 +1,10 @@
-# MailChimp API for Laravel 5.*
+# MailChimp oAuth API package for Laravel 5.+*
 
 [![Latest Version on Packagist][ico-version]][link-packagist]
 [![Software License][ico-license]](LICENSE.md)
 [![Total Downloads][ico-downloads]][link-downloads]
 
-Stupid Simple MailChimp oAuth API package for Laravel 5.*. **Note, this package is designed for applications that require users to authenticate via oAuth and handle requests on their behalf. Developed specifcally for [gethulahoop.com](https://www.gethulahoop.com)**
+Simple MailChimp oAuth API package for Laravel 5.+. **Note, this package is designed for applications that require users to authenticate via oAuth and handle requests on their behalf. Developed specifcally for [gethulahoop.com](https://www.gethulahoop.com)**
 
 **_Documentation coming soon. Refer to source functions for now._**
 
