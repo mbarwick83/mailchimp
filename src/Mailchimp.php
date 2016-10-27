@@ -19,138 +19,178 @@ class Mailchimp
     {
         $this->client_id = config('mailchimp.client_id');
         $this->client_secret = config('mailchimp.client_secret');
-
-    	$this->client = new Client([
-    	    'base_uri' => self::API_HOST,
-    	    'timeout'  => self::TIMEOUT,
-    	]);	
+        $this->redirect_uri = config('mailchimp.redirect_uri');
     }
 
-    public function test()
+    /**
+     * Create client instance
+     * 
+     * @param   [string] $base_uri
+     * @return  Response
+     */
+    protected function client($base_uri, $data_center = false)
     {
-        return "works dude, really!";
+        return new Client([
+            'base_uri' => $data_center ? str_replace('<$dc>', $data_center, $base_uri) : $base_uri,
+            'timeout'  => self::TIMEOUT,
+        ]);     
     }
 
-    // /**
-    // * Get authorization url for oauth
-    // * 
-    // * @return String
-    // */
-    // public function getLoginUrl()
-    // {
-	   // return $this->url('oauth2/authorize', self::LOGIN_HOST);
-    // }
+    /**
+    * Get authorization url for oauth
+    * 
+    * @return   String
+    */
+    public function getLoginUrl()
+    {
+	   return $this->url('oauth2/authorize', self::LOGIN_HOST);
+    }
 
-    // /**
-    // * Get user's access token and basic info
-    // * 
-    // * @param string $code
-    // */
-    // public function getAccessToken($code)
-    // {
-	   // return $this->post('1/oauth2/token.json', true, ['code' => $code]);
-    // }
+    /**
+    * Get user's access token
+    * 
+    * @param    string $code 
+    * @return   Response
+    */
+    public function getAccessToken($code)
+    {
+	   $response = $this->post('oauth2/token', ['code' => $code], true);
+       return $response['access_token'];
+    }
 
-    // /**
-    //  * Get user details from access token
-    //  */
-    // public function getUserDetails($access_token)
-    // {
-    //     $account = $this->get('1/user.json', ['access_token' => $access_token]);
-    //     return array_merge($account, ['access_token' => $access_token]);
-    // }
+    /**
+     * Get user details from access token
+     *
+     * @param   (string) $access_token
+     * @return  Response
+     */
+    public function getAccountDetails($access_token)
+    {
+        $client = $this->client(self::LOGIN_HOST);
+        $response = $this->toArray($client->request('GET', 'oauth2/metadata', [
+            'headers' => ["Authorization" => "OAuth $access_token"]
+        ]));
 
-    // /**
-    // * Make URLs for user browser navigation.
-    // *
-    // * @param string $path
-    // * @param string $host [base url]
-    // * @param array  $parameters
-    // *
-    // * @return string
-    // */
-    // protected function url($path, $host, array $parameters = null)
-    // {
-    // 	$query = [
-    //         'client_id' => $this->client_id,
-    // 	    'redirect_uri' => $this->redirect_uri,
-    // 	    'response_type' => 'code'
-    // 	];
+        return array_merge($response, ['access_token' => $access_token]);
+    }
 
-    //     if ($parameters)
-    //         $query = array_merge($query, $parameters);
+    /**
+    * Make URLs for user browser navigation.
+    *
+    * @param    string $path
+    * @param    string $host [base url]
+    * @param    array  $parameters
+    * @return   Response
+    */
+    protected function url($path, $host, array $parameters = null)
+    {
+    	$query = [
+            'client_id' => $this->client_id,
+    	    'client_secret' => $this->client_secret,
+    	    'response_type' => 'code'
+    	];
 
-    //     $query = http_build_query($query);
+        if ($parameters)
+            $query = array_merge($query, $parameters);
 
-    //     return sprintf('%s%s?%s', $host, $path, $query);
-    // }
+        $query = http_build_query($query);
 
-    // *
-    // * Make POST calls to the API
-    // * 
-    // * @param  string  $path          
-    // * @param  boolean $authorization [Use access token query params]
-    // * @param  array   $parameters    [Optional query parameters]
-    // * @return Array
-    
-    // public function post($path, $authorization = false, array $parameters)
-    // {
-    // 	$query = [];
+        return sprintf('%s%s?%s', $host, $path, $query);
+    }
 
-    // 	if ($authorization)
-    // 	    $query = [
-    // 	        'client_id' => $this->client_id,
-    // 	    	'client_secret' => $this->client_secret,
-    // 	    	'redirect_uri' => $this->redirect_uri,			 
-    // 	    	'grant_type' => 'authorization_code',
-    // 	    ];
+    /**
+    * Make POST calls to the API
+    * 
+    * @param    string  $path
+    * @param    array   $parameters       [Optional query parameters]          
+    * @param    boolean $authorization    [Use access token query params]
+    * @param    string  $data_center      [user's data center code]
+    * @return   Response
+    */    
+    public function post($path, array $parameters, $authorization = false, $data_center = false)
+    {
+    	$query = [];
 
-    // 	if ($parameters)
-    //         $query = array_merge($query, $parameters);
+    	if ($authorization)
+    	    $query = [
+    	        'client_id' => $this->client_id,
+    	    	'client_secret' => $this->client_secret,			 
+    	    	'grant_type' => 'authorization_code',
+                'redirect_uri' => $this->redirect_uri
+    	    ];       
 
-    //     try {
-    // 	    $response = $this->client->request('POST', $path, [
-    // 	        'form_params' => $query
-    // 	    ]);
+    	if ($parameters)
+            $query = array_merge($query, $parameters);
 
-    //         return $this->toArray($response);
-    // 	} 
-    // 	catch (ClientException $e) {
-    // 	    return $this->toArray($e->getResponse());
-    //     }    	
-    // }
+        try {
+            $client = $this->client(($authorization) ? self::LOGIN_HOST : self::API_HOST, $data_center);
+            $response = $client->request('POST', $path, [
+                'form_params' => $query
+            ]);  	    
 
-    // /**
-    // * Make GET calls to the API
-    // * 
-    // * @param  string $path
-    // * @param  array  $parameters [Query parameters]
-    // * @return Array
-    // */
-    // public function get($path, array $parameters)
-    // {
-    //     try {
-    // 	    $response = $this->client->request('GET', $path, [
-    // 	        'query' => $parameters
-    // 	    ]);
+            return $this->toArray($response);
+    	} 
+    	catch (ClientException $e) {
+    	    return $this->toArray($e->getResponse());
+        }    	
+    }
 
-    //         return $this->toArray($response);
-    // 	}
-    // 	catch (ClientException $e) {
-    // 	    return $this->toArray($e->getResponse());
-    // 	}
-    // }
+    /**
+    * Make GET calls to the API
+    * 
+    * @param    string $path
+    * @param    array  $parameters   [Query parameters]
+    * @param    string $data_center  [user's data center code]
+    * @return   Response
+    */
+    public function get($path, array $parameters, $data_center)
+    {
+        try {
+            $client = $this->client(self::API_HOST, $data_center);
+    	    $response = $client->request('GET', $path, [
+    	        'query' => $parameters
+    	    ]);
 
-    // /**
-    // * Convert API response to array
-    // * 
-    // * @param  Object $response
-    // * @return Array
-    // */
-    // protected function toArray($response)
-    // {
-    // 	return json_decode($response->getBody()->getContents(), true);
-    // }
+            return $this->toArray($response);
+    	}
+    	catch (ClientException $e) {
+    	    return $this->toArray($e->getResponse());
+    	}
+    }
+
+    /**
+    * Make DELETE calls to the API
+    * 
+    * @param    string  $path
+    * @param    array   $parameters  [Optional query parameters]
+    * @param    string  $data_center [user's data center code]
+    * @return   Response
+    */
+    public function delete($path, array $parameters, $data_center)
+    {
+        try {
+            $client = $this->client(self::API_HOST, $data_center);
+            $response = $client->request('DELETE', $path, [
+                'query' => $parameters
+            ]);
+
+            return $this->toArray($response);
+        }
+        catch (ClientException $e) {
+            return $this->toArray($e->getResponse());
+        } 
+    }
+
+    /**
+    * Convert API response to array
+    * 
+    * @param    Object $response
+    * @return   Response
+    */
+    protected function toArray($response)
+    {
+    	return json_decode($response->getBody()->getContents(), true);
+    }    
 }
 
 
