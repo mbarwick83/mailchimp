@@ -54,7 +54,7 @@ class Mailchimp
     */
     public function getAccessToken($code)
     {
-	   $response = $this->post('oauth2/token', ['code' => $code], false, true);
+	   $response = $this->post('oauth2/token', false, false, ['code' => $code], true);
        return $response['access_token'];
     }
 
@@ -66,12 +66,14 @@ class Mailchimp
      */
     public function getAccountDetails($access_token)
     {
-        $client = $this->client(self::LOGIN_HOST);
-        $response = $this->toArray($client->request('GET', 'oauth2/metadata', [
+        $meta = $this->toArray($this->client(self::LOGIN_HOST)->request('GET', 'oauth2/metadata', [
             'headers' => ["Authorization" => "OAuth $access_token"]
         ]));
 
-        return array_merge($response, ['access_token' => $access_token]);
+        $meta = array('dc' => $meta['dc'], 'role' => $meta['role'], 'access_token' => $access_token);
+        $account_details = $this->get(null, $access_token, $meta['dc'], ['exclude_fields' => '_links']);
+
+        return array_merge($meta, $account_details);
     }
 
     /**
@@ -102,12 +104,13 @@ class Mailchimp
     * Make POST calls to the API
     * 
     * @param    string  $path
-    * @param    array   $parameters       [Optional query parameters]  
-    * @param    string  $data_center      [user's data center code]        
+    * @param    string  $access_token  
+    * @param    string  $data_center      [user's data center code]
+    * @param    array   $parameters       [Optional query parameters]        
     * @param    boolean $authorization    [Use access token query params] 
     * @return   Response
     */    
-    public function post($path, array $parameters, $data_center = false, $authorization = false)
+    public function post($path, $access_token = false, $data_center = false, array $parameters = null, $authorization = false)
     {
     	$query = [];
 
@@ -124,9 +127,19 @@ class Mailchimp
 
         try {
             $client = $this->client(($authorization) ? self::LOGIN_HOST : self::API_HOST, $data_center);
-            $response = $client->request('POST', $path, [
-                'form_params' => $query
-            ]);  	    
+
+            if ($access_token)
+            {
+                $response = $client->request('POST', $path, [
+                    'auth' => [null, $access_token],
+                    'json' => $query
+                ]); 
+            }
+            else {
+                $response = $client->request('POST', $path, [
+                    'form_params' => $query
+                ]);
+            } 	    
 
             return $this->toArray($response);
     	} 
@@ -139,16 +152,18 @@ class Mailchimp
     * Make GET calls to the API
     * 
     * @param    string $path
-    * @param    array  $parameters   [Query parameters]
+    * @param    string $access_token
     * @param    string $data_center  [user's data center code]
+    * @param    array  $parameters   [Query parameters]
     * @return   Response
     */
-    public function get($path, array $parameters, $data_center)
+    public function get($path, $access_token, $data_center, array $parameters = null)
     {
         try {
             $client = $this->client(self::API_HOST, $data_center);
     	    $response = $client->request('GET', $path, [
-    	        'query' => $parameters
+    	        'auth' => [null, $access_token],
+                'query' => $parameters
     	    ]);
 
             return $this->toArray($response);
@@ -162,11 +177,12 @@ class Mailchimp
     * Make DELETE calls to the API
     * 
     * @param    string  $path
-    * @param    array   $parameters  [Optional query parameters]
+    * @param    string  $access_token
     * @param    string  $data_center [user's data center code]
+    * @param    array   $parameters  [Optional query parameters]
     * @return   Response
     */
-    public function delete($path, array $parameters, $data_center)
+    public function delete($path, $access_token, $data_center, array $parameters)
     {
         try {
             $client = $this->client(self::API_HOST, $data_center);
