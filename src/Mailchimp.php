@@ -89,7 +89,8 @@ class Mailchimp
     	$query = [
             'client_id' => $this->client_id,
     	    'client_secret' => $this->client_secret,
-    	    'response_type' => 'code'
+    	    'response_type' => 'code',	    
+            'redirect_uri' => $this->redirect_uri
     	];
 
         if ($parameters)
